@@ -1,0 +1,62 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Regra para usuários: qualquer usuário autenticado pode ler e escrever
+    // nos documentos de usuário. Isso permite que administradores criem novos usuários.
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Logs do n8n: Webhook pode criar, usuários logados podem ler, atualizar e excluir.
+    match /n8n_logs/{logId} {
+      allow create: if true;
+      allow read, list, write: if request.auth != null;
+    }
+
+    // Mensagens do WhatsApp: Webhook pode criar, usuários logados podem ler e gerenciar.
+    match /whatsappMessages/{messageId} {
+      allow create: if true;
+      allow read, list, write: if request.auth != null;
+    }
+    
+    // Regra para a consulta de grupo de coleção em 'treatmentPlans' e 'treatments'
+    match /{path=**}/{collectionName}/{docId} {
+      allow read, write: if request.auth != null && (collectionName == 'treatmentPlans' || collectionName == 'treatments');
+    }
+
+    // Clientes e Leads: Acesso total para usuários logados
+    match /clients/{clientId}/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /leads/{leadId}/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /leadStages/{stageId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /quotes/{quoteId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /services/{serviceId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /appointments/{appointmentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /settings/{settingId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /aiTrainingData/{dataId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

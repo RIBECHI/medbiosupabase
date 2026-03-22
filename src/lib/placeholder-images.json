@@ -1,0 +1,58 @@
+{
+  "placeholderImages": [
+    {
+      "id": "client1",
+      "description": "client portrait 1",
+      "imageUrl": "https://picsum.photos/seed/1/100/100",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "client2",
+      "description": "client portrait 2",
+      "imageUrl": "https://images.unsplash.com/photo-1522556189639-b150ed9c4330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTk3NzIxODV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "client3",
+      "description": "client portrait 3",
+      "imageUrl": "https://picsum.photos/seed/3/100/100",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "client4",
+      "description": "client portrait 4",
+      "imageUrl": "https://picsum.photos/seed/4/100/100",
+      "imageHint": "man smiling"
+    },
+    {
+      "id": "client5",
+      "description": "client portrait 5",
+      "imageUrl": "https://picsum.photos/seed/5/100/100",
+      "imageHint": "woman profile"
+    },
+    {
+      "id": "before1",
+      "description": "before photo 1",
+      "imageUrl": "https://picsum.photos/seed/before1/600/400",
+      "imageHint": "skin wrinkles"
+    },
+    {
+      "id": "after1",
+      "description": "after photo 1",
+      "imageUrl": "https://picsum.photos/seed/after1/600/400",
+      "imageHint": "smooth skin"
+    },
+    {
+      "id": "before2",
+      "description": "before photo 2",
+      "imageUrl": "https://picsum.photos/seed/before2/600/400",
+      "imageHint": "face acne"
+    },
+    {
+      "id": "after2",
+      "description": "after photo 2",
+      "imageUrl": "https://picsum.photos/seed/after2/600/400",
+      "imageHint": "clear skin"
+    }
+  ]
+}

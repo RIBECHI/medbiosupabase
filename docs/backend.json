@@ -1,0 +1,291 @@
+
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a system user who can log in.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string", "format": "uri" }
+      },
+      "required": ["displayName", "email"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Represents a clinic's client/patient information.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "description": "The client's display name." },
+        "email": { "type": "string", "format": "email", "description": "The client's email address." },
+        "photoURL": { "type": "string", "format": "uri", "description": "The URL of the client's profile picture." },
+        "phone": { "type": "string", "description": "The client's phone number." },
+        "joinDate": { "type": "string", "format": "date-time", "description": "The date the client joined." },
+        "dob": { "type": "string", "format": "date", "description": "The client's date of birth." },
+        "address": { "type": "string", "description": "The client's address." },
+        "notes": { "type": "string", "description": "General notes about the client." },
+        "cpf": { "type": "string", "description": "The client's CPF number." }
+      },
+      "required": ["displayName", "joinDate"]
+    },
+    "WhatsAppMessage": {
+      "title": "WhatsApp Message",
+      "description": "Representa uma mensagem de WhatsApp enviada ou recebida.",
+      "type": "object",
+      "properties": {
+        "clientName": { "type": "string", "description": "The name of the client the message was sent to." },
+        "clientPhone": { "type": "string", "description": "The phone number of the client." },
+        "sentDate": { "type": "string", "format": "date-time", "description": "The date and time the message was sent by the user." },
+        "content": { "type": "string", "description": "O conteúdo da mensagem enviada pelo atendente virtual." },
+        "message": { "type": "string", "description": "O conteúdo da mensagem recebida do cliente." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the message was logged in the system." },
+        "isRead": { "type": "boolean", "description": "Indicates if the message has been read by a system user." }
+      },
+      "required": ["clientName", "createdAt", "isRead"]
+    },
+    "N8nLog": {
+      "title": "n8n Webhook Log",
+      "description": "Stores raw data received from an n8n webhook.",
+      "type": "object",
+      "properties": {
+        "receivedAt": { "type": "string", "format": "date-time", "description": "The timestamp when the webhook was received." },
+        "data": { "type": "object", "description": "The raw JSON payload from the webhook." },
+        "isRead": { "type": "boolean", "description": "Indicates if the log/message has been read by a system user." }
+      },
+      "required": ["receivedAt", "data", "isRead"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Represents a potential customer in the sales funnel.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the lead." },
+        "email": { "type": "string", "format": "email", "description": "The lead's email address." },
+        "phone": { "type": "string", "description": "The lead's phone number." },
+        "source": { "type": "string", "description": "The source from which the lead was generated (e.g., 'Instagram', 'Site')." },
+        "status": { "type": "string", "description": "The current stage of the lead in the sales funnel." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the lead was created." },
+        "owner": { "type": "string", "description": "The team member responsible for the lead." },
+        "potentialValue": { "type": "number", "description": "The estimated monetary value of the lead." },
+        "notes": { "type": "string", "description": "General notes about the lead." }
+      },
+      "required": ["name", "status", "createdAt"]
+    },
+    "LeadHistory": {
+      "title": "Lead History",
+      "description": "Represents a single interaction or note in a lead's follow-up history.",
+      "type": "object",
+      "properties": {
+        "leadId": { "type": "string", "description": "The ID of the associated lead." },
+        "date": { "type": "string", "format": "date-time", "description": "The timestamp of the interaction." },
+        "interactionType": {
+          "type": "string",
+          "enum": ["Chamada Telefônica", "Mensagem WhatsApp", "E-mail", "Reunião Presencial", "Nota Interna"],
+          "description": "The type of interaction."
+        },
+        "summary": { "type": "string", "description": "A summary of the interaction." },
+        "nextAction": { "type": "string", "description": "The description of the next follow-up action." },
+        "nextActionDate": { "type": "string", "format": "date", "description": "The date for the next follow-up action." }
+      },
+      "required": ["leadId", "date", "interactionType", "summary"]
+    },
+    "LeadStage": {
+      "title": "Lead Stage",
+      "description": "Represents a customizable stage in the sales funnel.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the stage (e.g., 'Novo Lead', 'Qualificação')." },
+        "order": { "type": "number", "description": "The display order of the stage in the pipeline." },
+        "color": { "type": "string", "description": "A cor para identificar visualmente a etapa, em formato hexadecimal." },
+        "description": { "type": "string", "description": "A detailed description of what this stage represents." }
+      },
+      "required": ["name", "order", "color"]
+    },
+    "TreatmentPlan": {
+        "title": "Treatment Plan",
+        "description": "Represents a client's treatment plan.",
+        "type": "object",
+        "properties": {
+          "clientId": { "type": "string", "description": "The ID of the client." },
+          "name": { "type": "string", "description": "The name of the plan." },
+          "startDate": { "type": "string", "format": "date-time" },
+          "status": { "type": "string", "enum": ["Ativo", "Concluído", "Em Espera"] },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sessionNumber": { "type": "number" },
+                "date": { "type": "string", "format": "date-time" },
+                "description": { "type": "string" },
+                "completed": { "type": "boolean" }
+              }
+            }
+          },
+          "notes": { "type": "string" },
+          "totalValue": { "type": "number" }
+        },
+        "required": ["clientId", "name", "startDate", "status", "totalValue"]
+    },
+    "Quote": {
+        "title": "Quote",
+        "description": "Represents a price quote for a client.",
+        "type": "object",
+        "properties": {
+            "clientId": { "type": "string", "description": "The ID of the client." },
+            "clientName": { "type": "string", "description": "The name of the client." },
+            "date": { "type": "string", "format": "date-time" },
+            "status": { "type": "string", "enum": ["Pendente", "Aprovado", "Recusado"] },
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "description": { "type": "string" },
+                        "quantity": { "type": "number" },
+                        "unitPrice": { "type": "number" }
+                    },
+                    "required": ["description", "quantity", "unitPrice"]
+                }
+            },
+            "totalAmount": { "type": "number" },
+            "notes": { "type": "string" }
+        },
+        "required": ["clientId", "clientName", "date", "status", "items", "totalAmount"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Represents a service offered by the clinic.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the service." },
+        "description": { "type": "string", "description": "A detailed description of the service." },
+        "category": { "type": "string", "description": "The category of the service (e.g., 'Facial', 'Body', 'Laser')." },
+        "duration": { "type": "number", "description": "The duration of the service in minutes." },
+        "price": { "type": "number", "description": "The price of the service." }
+      },
+      "required": ["name", "category", "duration", "price"]
+    },
+    "Treatment": {
+      "title": "Treatment",
+      "description": "Represents a single treatment/procedure performed on a client.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string", "description": "The ID of the client." },
+        "date": { "type": "string", "format": "date-time", "description": "The date the treatment was performed." },
+        "serviceName": { "type": "string", "description": "The name of the service/treatment performed." },
+        "professional": { "type": "string", "description": "The name of the professional who performed the treatment." },
+        "price": { "type": "number", "description": "The price of the treatment session." },
+        "notes": { "type": "string", "description": "Notes about the treatment session." }
+      },
+      "required": ["clientId", "date", "serviceName", "professional", "price"]
+    },
+     "Appointment": {
+      "title": "Appointment",
+      "description": "Represents a client's appointment.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string", "description": "The ID of the client." },
+        "clientName": { "type": "string", "description": "The name of the client." },
+        "serviceName": { "type": "string", "description": "The name of the service/treatment scheduled." },
+        "date": { "type": "string", "format": "date", "description": "The date of the appointment." },
+        "startTime": { "type": "string", "description": "The start time of the appointment (e.g., '14:30')." },
+        "endTime": { "type": "string", "description": "The end time of the appointment (e.g., '15:30')." },
+        "status": { "type": "string", "enum": ["Confirmado", "Pendente", "Cancelado", "Concluído"], "description": "The status of the appointment." },
+        "notes": { "type": "string", "description": "General notes about the appointment." }
+      },
+      "required": ["clientId", "clientName", "serviceName", "date", "startTime", "endTime", "status"]
+    },
+    "GeneralSettings": {
+      "title": "General Settings",
+      "description": "Stores general settings for the application, such as the logo URL.",
+      "type": "object",
+      "properties": {
+        "logoUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL of the clinic's logo."
+        },
+        "n8nTrainingWebhookUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "The webhook URL for the n8n AI training workflow."
+        }
+      }
+    },
+    "AITrainingData": {
+      "title": "AI Training Data",
+      "description": "Stores question/answer or topic/content pairs for training an AI agent.",
+      "type": "object",
+      "properties": {
+        "topic": { "type": "string", "description": "The topic, question, or key for the information." },
+        "content": { "type": "string", "description": "The detailed content, answer, or information for the AI to learn." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the data was created." }
+      },
+      "required": ["topic", "content", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous", "password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores profile information for each system user."
+    },
+    "/clients/{clientId}": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "Stores information for each clinic client."
+    },
+    "/clients/{clientId}/treatments/{treatmentId}": {
+      "schema": { "$ref": "#/entities/Treatment" },
+      "description": "Stores the treatment history for a specific client."
+    },
+    "/whatsappMessages/{messageId}": {
+        "schema": { "$ref": "#/entities/WhatsAppMessage" },
+        "description": "Stores logs of WhatsApp messages sent via n8n automation."
+    },
+    "/n8n_logs/{logId}": {
+      "schema": { "$ref": "#/entities/N8nLog" },
+      "description": "Stores raw incoming webhook data from n8n for debugging."
+    },
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Stores all sales funnel leads."
+    },
+    "/leads/{leadId}/history/{historyId}": {
+      "schema": { "$ref": "#/entities/LeadHistory" },
+      "description": "Stores the follow-up history for a specific lead."
+    },
+    "/leadStages/{stageId}": {
+      "schema": { "$ref": "#/entities/LeadStage" },
+      "description": "Stores the customizable stages for the sales funnel."
+    },
+    "/clients/{clientId}/treatmentPlans/{planId}": {
+        "schema": { "$ref": "#/entities/TreatmentPlan" },
+        "description": "Stores treatment plans for a specific client."
+    },
+    "/quotes/{quoteId}": {
+        "schema": { "$ref": "#/entities/Quote" },
+        "description": "Stores all quotes."
+    },
+    "/services/{serviceId}": {
+        "schema": { "$ref": "#/entities/Service" },
+        "description": "Stores all clinic services."
+    },
+    "/appointments/{appointmentId}": {
+        "schema": { "$ref": "#/entities/Appointment" },
+        "description": "Stores all client appointments."
+    },
+    "/settings/general": {
+      "schema": { "$ref": "#/entities/GeneralSettings" },
+      "description": "Stores general application settings."
+    },
+    "/aiTrainingData/{dataId}": {
+      "schema": { "$ref": "#/entities/AITrainingData" },
+      "description": "Stores all AI training data entries."
+    }
+  }
+}
+    
