@@ -25,14 +25,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, WithFieldValue } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { CalendarIcon, Loader2 } from 'lucide-react';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import type { Client, Treatment } from '@/lib/types';
-import { treatmentConverter } from '@/lib/types';
 import { ScrollArea } from '../ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
@@ -58,7 +52,6 @@ type AddTreatmentFormProps = {
 
 export function AddTreatmentForm({ isOpen, onOpenChange, client }: AddTreatmentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const firestore = useFirestore();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof treatmentFormSchema>>({
@@ -95,7 +88,6 @@ export function AddTreatmentForm({ isOpen, onOpenChange, client }: AddTreatmentF
       date: values.date,
     };
     
-    const treatmentsCollection = collection(firestore, 'clients', client.id, 'treatments').withConverter(treatmentConverter);
     
     addDoc(treatmentsCollection, newTreatmentData)
       .then(() => {
@@ -106,12 +98,10 @@ export function AddTreatmentForm({ isOpen, onOpenChange, client }: AddTreatmentF
         onOpenChange(false);
       })
       .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
           path: treatmentsCollection.path,
           operation: 'create',
           requestResourceData: newTreatmentData,
         });
-        errorEmitter.emit('permission-error', permissionError);
       })
       .finally(() => {
         setIsSubmitting(false);

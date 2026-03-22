@@ -31,14 +31,9 @@ import {
     SelectTrigger,
     SelectValue,
   } from '@/components/ui/select';
-import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { type User, type Client, clientConverter, userConverter } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -63,15 +58,10 @@ type AddLeadFormProps = {
 export function AddLeadForm({ isOpen, onOpenChange, leadStatuses }: AddLeadFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
-  const firestore = useFirestore();
   const { user: currentUser } = useUser();
   const { toast } = useToast();
   
-  const clientsQuery = useMemo(() => firestore ? query(collection(firestore, 'clients')).withConverter(clientConverter) : null, [firestore]);
-  const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'users')).withConverter(userConverter) : null, [firestore]);
 
-  const { data: clients, loading: loadingClients } = useCollection<Client>(clientsQuery, {snapshot: false});
-  const { data: users, loading: loadingUsers } = useCollection<User>(usersQuery, {snapshot: false});
 
   const loadingData = loadingClients || loadingUsers;
 
@@ -131,12 +121,10 @@ export function AddLeadForm({ isOpen, onOpenChange, leadStatuses }: AddLeadFormP
         onOpenChange(false);
       })
       .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
           path: leadsCollection.path,
           operation: 'create',
           requestResourceData: newLeadData,
         });
-        errorEmitter.emit('permission-error', permissionError);
       })
       .finally(() => {
         setIsSubmitting(false);

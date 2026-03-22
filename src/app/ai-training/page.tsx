@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useCollection, useFirestore, useDoc } from '@/firebase';
 import {
   collection,
   query,
@@ -23,14 +22,12 @@ import {
   serverTimestamp,
   updateDoc,
   type Query,
-} from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import {
   aiTrainingDataConverter,
   type AITrainingData,
   settingsConverter, 
   type GeneralSettings,
-} from '@/lib/types';
 import {
   Bot,
   Loader2,
@@ -59,11 +56,9 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
 
 // Main page component
 export default function AITrainingPage() {
-  const firestore = useFirestore();
   const { toast } = useToast();
   
   const [topic, setTopic] = useState('');
@@ -79,10 +74,8 @@ export default function AITrainingPage() {
     return query(
       collection(firestore, 'aiTrainingData'),
       orderBy('createdAt', 'desc')
-    ).withConverter(aiTrainingDataConverter);
   }, [firestore]);
 
-  const { data: trainingData, loading } = useCollection<AITrainingData>(
     trainingDataQuery
   );
 

@@ -13,12 +13,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { collection, addDoc, serverTimestamp, WithFieldValue, Timestamp } from 'firebase/firestore';
 import type { Conversation } from '@/app/conversations/page';
-import type { Lead, Client } from '@/lib/types';
 import { Phone, ExternalLink, UserPlus, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isSameDay } from 'date-fns';
@@ -50,7 +45,6 @@ export function ConversationDialog({
     leads: Lead[];
 }) {
     const [isProcessing, setIsProcessing] = React.useState(false);
-    const firestore = useFirestore();
     const { toast } = useToast();
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
     const firstUnreadRef = React.useRef<HTMLDivElement>(null);
@@ -142,12 +136,10 @@ export function ConversationDialog({
               });
             })
             .catch(serverError => {
-              const permissionError = new FirestorePermissionError({
                 path: leadsCollection.path,
                 operation: 'create',
                 requestResourceData: newLeadData,
               });
-              errorEmitter.emit('permission-error', permissionError);
             })
             .finally(() => {
               setIsProcessing(false);

@@ -31,18 +31,13 @@ import {
     SelectTrigger,
     SelectValue,
   } from '@/components/ui/select';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, WithFieldValue, query } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import { type Client, type Service, quoteConverter, type Quote, clientConverter, serviceConverter } from '@/lib/types';
 
 
 const quoteItemSchema = z.object({
@@ -66,14 +61,9 @@ type AddQuoteFormProps = {
 export function AddQuoteForm({ isOpen, onOpenChange }: AddQuoteFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState<number | null>(null);
-  const firestore = useFirestore();
   const { toast } = useToast();
 
-  const clientsQuery = useMemo(() => firestore ? query(collection(firestore, 'clients')).withConverter(clientConverter) : null, [firestore]);
-  const servicesQuery = useMemo(() => firestore ? query(collection(firestore, 'services')).withConverter(serviceConverter) : null, [firestore]);
 
-  const { data: clients, loading: loadingClients } = useCollection<Client>(clientsQuery, {snapshot: false});
-  const { data: services, loading: loadingServices } = useCollection<Service>(servicesQuery, {snapshot: false});
   const loadingData = loadingClients || loadingServices;
 
   const form = useForm<z.infer<typeof quoteFormSchema>>({
@@ -126,7 +116,6 @@ export function AddQuoteForm({ isOpen, onOpenChange }: AddQuoteFormProps) {
         date: serverTimestamp(),
     };
 
-    const quotesCollection = collection(firestore, 'quotes').withConverter(quoteConverter);
 
     addDoc(quotesCollection, newQuoteData)
       .then(() => {
@@ -137,12 +126,10 @@ export function AddQuoteForm({ isOpen, onOpenChange }: AddQuoteFormProps) {
         onOpenChange(false);
       })
       .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
           path: quotesCollection.path,
           operation: 'create',
           requestResourceData: newQuoteData,
         });
-        errorEmitter.emit('permission-error', permissionError);
       })
       .finally(() => {
         setIsSubmitting(false);

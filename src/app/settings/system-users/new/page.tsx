@@ -11,8 +11,6 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { initializeApp, FirebaseError, deleteApp } from 'firebase/app';
-import { setDoc, doc } from 'firebase/firestore';
-import { useFirestore, useFirebaseApp } from '@/firebase';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,7 +44,6 @@ type NewUserFormData = z.infer<typeof formSchema>;
 
 export default function NewUserPage() {
   const router = useRouter();
-  const firestore = useFirestore();
   const mainApp = useFirebaseApp(); // Renomeado para clareza
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);

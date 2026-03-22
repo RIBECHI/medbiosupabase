@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -10,52 +10,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from '@/components/ui/table';
-import { FileText, Stethoscope, Home, Gift, StickyNote, Info, MessageSquare, PlusCircle, UserSquare, Edit } from 'lucide-react';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { FileText, Stethoscope, Home, StickyNote, Info, MessageSquare, PlusCircle, Edit } from 'lucide-react';
 import { TreatmentPlanRecommender } from '@/components/clients/TreatmentPlanRecommender';
 import { ClientTreatmentHistory } from '@/components/clients/ClientTreatmentHistory';
 import type { ImagePlaceholder } from '@/lib/placeholder-images';
-import { Timestamp, collection, doc, query, where } from 'firebase/firestore';
-import { useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useCollection, useDoc, useFirestore } from '@/firebase';
-import type { Client, TreatmentPlan, Quote } from '@/lib/types';
-import { clientConverter, quoteConverter, treatmentPlanConverter } from '@/lib/types';
-
+import { createClient as createSupabase } from '@/lib/supabase/client';
+import type { Client, Quote, TreatmentPlan } from '@/lib/supabase/types';
 
 export default function ClientDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
-  const firestore = useFirestore();
+  const supabase = createSupabase();
+  const [client, setClient] = useState<Client | null>(null);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [treatmentPlans, setTreatmentPlans] = useState<TreatmentPlan[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const clientRef = useMemo(() => {
-    if (!firestore || !params.id) return null;
-    return doc(firestore, 'clients', params.id).withConverter(clientConverter);
-  }, [firestore, params.id]);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    const [clientRes, quotesRes, plansRes] = await Promise.all([
+      supabase.from('clients').select('*').eq('id', params.id).single(),
+      supabase.from('quotes').select('*').eq('client_id', params.id),
+      supabase.from('treatment_plans').select('*').eq('client_id', params.id),
+    ]);
+    if (clientRes.data) setClient(clientRes.data);
+    if (quotesRes.data) setQuotes(quotesRes.data);
+    if (plansRes.data) setTreatmentPlans(plansRes.data);
+    setLoading(false);
+  }, [params.id]);
 
-  const quotesQuery = useMemo(() => {
-    if (!firestore || !params.id) return null;
-    return query(collection(firestore, 'quotes'), where('clientId', '==', params.id)).withConverter(quoteConverter);
-  }, [firestore, params.id]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const treatmentPlansQuery = useMemo(() => {
-    if (!firestore || !params.id) return null;
-    return query(collection(firestore, 'clients', params.id, 'treatmentPlans')).withConverter(treatmentPlanConverter);
-  }, [firestore, params.id]);
-
-  const { data: client, loading: loadingClient } = useDoc<Client>(clientRef);
-  const { data: clientQuotes, loading: loadingQuotes } = useCollection<Quote>(quotesQuery, { snapshot: false });
-  const { data: clientTreatmentPlans, loading: loadingPlans } = useCollection<TreatmentPlan>(treatmentPlansQuery, { snapshot: false });
-  
-  const loading = loadingClient || loadingQuotes || loadingPlans;
+  const formatDate = (date?: string, fmt = 'dd/MM/yyyy') => {
+    if (!date) return 'N/A';
+    try { return format(parseISO(date), fmt, { locale: ptBR }); } catch { return 'N/A'; }
+  };
 
   const beforeAfterImages = [
     PlaceHolderImages.find(img => img.id === 'before1'),
@@ -64,259 +56,128 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
     PlaceHolderImages.find(img => img.id === 'after2'),
   ].filter((img): img is ImagePlaceholder => !!img);
 
-  const formatDate = (date: any, targetFormat: string = 'dd/MM/yyyy') => {
-    if (!date) return 'N/A';
-    let dateObj: Date | null = null;
-
-    if (date instanceof Timestamp) {
-      dateObj = date.toDate();
-    } else if (date instanceof Date) {
-      dateObj = date;
-    } else if (typeof date === 'string') {
-      const parsed = parseISO(date);
-      if (!isNaN(parsed.getTime())) {
-        dateObj = parsed;
-      } else {
-        const utcDate = new Date(date + 'T00:00:00');
-        if (!isNaN(utcDate.getTime())) {
-          dateObj = utcDate;
-        }
-      }
-    }
-
-    return dateObj && !isNaN(dateObj.getTime()) ? format(dateObj, targetFormat, { locale: ptBR }) : 'N/A';
-  }
-  
-  function TreatmentPlanList({ client, plans }: { client: Client, plans: TreatmentPlan[] }) {
-    if (loading) {
-        return <Skeleton className="h-40 w-full" />;
-    }
-
-    if (!plans || plans.length === 0) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-primary">Nenhum Plano de Tratamento Ativo</CardTitle>
-                    <CardDescription>Este cliente ainda não possui um plano de tratamento.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button disabled>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Criar Plano de Tratamento
-                    </Button>
-                </CardContent>
-            </Card>
-        );
-    }
-    
-    const firstPlan = plans[0];
-
-    return <TreatmentPlanRecommender plan={firstPlan} />;
-  }
-
-  function ClientQuotesList() {
-      const formatCurrency = (value: number) => {
-          return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      }
-
-      const getStatusVariant = (status: Quote['status']) => {
-          switch (status) {
-              case 'Aprovado': return 'default';
-              case 'Recusado': return 'destructive';
-              case 'Pendente': return 'secondary';
-              default: return 'outline';
-          }
-      };
-
-      if (loading) {
-          return <Skeleton className="h-40 w-full" />;
-      }
-
-      if (!clientQuotes || clientQuotes.length === 0) {
-          return (
-              <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                  <Info className="w-8 h-8 mb-2" />
-                  <p>Nenhum orçamento encontrado para este cliente.</p>
-              </div>
-          );
-      }
-
-      return (
-          <Table>
-              <TableHeader>
-                  <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Valor Total</TableHead>
-                      <TableHead>Status</TableHead>
-                  </TableRow>
-              </TableHeader>
-              <TableBody>
-                  {clientQuotes.map((quote) => (
-                      <TableRow key={quote.id}>
-                          <TableCell>{formatDate(quote.date)}</TableCell>
-                          <TableCell>{formatCurrency(quote.totalAmount)}</TableCell>
-                          <TableCell><Badge variant={getStatusVariant(quote.status)}>{quote.status}</Badge></TableCell>
-                      </TableRow>
-                  ))}
-              </TableBody>
-          </Table>
-      );
-  }
-
-  const openWhatsApp = (phone: string) => {
-    const cleanPhone = phone.replace(/\D/g, '');
-    const whatsappUrl = `whatsapp://send?phone=${cleanPhone.startsWith('55') ? cleanPhone : '55' + cleanPhone}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
   if (loading) {
     return (
-      <>
-        <PageHeader title={<Skeleton className="h-8 w-48" />} description={<Skeleton className="h-4 w-64" />} showBackButton />
-        <Card>
-          <CardHeader>
-            <CardTitle><Skeleton className="h-6 w-40" /></CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Skeleton className="h-5 w-full" />
-              <Skeleton className="h-5 w-full" />
-              <Skeleton className="h-5 w-full" />
-              <Skeleton className="h-5 w-full" />
-            </div>
-          </CardContent>
-        </Card>
-      </>
+      <div className="space-y-4 p-6">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
     );
   }
 
-  if (!client && !loading) {
-    notFound();
-  }
-
-  // Fallback while client is defined but loading might still be finalizing other things
   if (!client) {
-    return <PageHeader title="Carregando cliente..." showBackButton />;
+    return (
+      <div className="p-6">
+        <p className="text-muted-foreground">Cliente não encontrado.</p>
+        <Button asChild className="mt-4"><Link href="/clients">Voltar para Clientes</Link></Button>
+      </div>
+    );
   }
 
   return (
     <>
-      <PageHeader title={<span className="text-primary">{client.displayName}</span>} description={`Cliente desde ${formatDate(client.joinDate)}`} showBackButton>
-        <Button variant="outline" onClick={() => router.push(`/clients/${client.id}/edit`)}>
-          <Edit className="mr-2 h-4 w-4" />
-          Editar Perfil
+      <PageHeader
+        title={<span className="text-primary">{client.display_name}</span>}
+        description={`Detalhes do cliente desde ${formatDate(client.join_date)}`}
+      >
+        <Button variant="outline" asChild>
+          <Link href={`/clients/${client.id}/edit`}><Edit className="mr-2 h-4 w-4" />Editar</Link>
         </Button>
-        <Button onClick={() => router.push('/schedule')}>Novo Agendamento</Button>
+        <Button asChild>
+          <Link href={`/conversations?phone=${client.phone?.replace(/\D/g, '')}`}>
+            <MessageSquare className="mr-2 h-4 w-4" />Ver Conversa
+          </Link>
+        </Button>
       </PageHeader>
 
-      <Tabs defaultValue="profile">
-        <TabsList>
-          <TabsTrigger value="profile">Perfil</TabsTrigger>
-          <TabsTrigger value="history">Histórico de Tratamentos</TabsTrigger>
-          <TabsTrigger value="plan">Planos de Tratamento</TabsTrigger>
-          <TabsTrigger value="quotes">Orçamentos</TabsTrigger>
-          <TabsTrigger value="photos">Fotos</TabsTrigger>
-        </TabsList>
-        <TabsContent value="profile" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-primary">Informações do Cliente</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div><strong>Email:</strong> {client.email || 'Não informado'}</div>
-                <div className="flex items-center gap-2">
-                  <strong>Telefone:</strong> {client.phone || 'Não informado'}
-                  {client.phone && (
-                    <button onClick={() => openWhatsApp(client.phone!)} title="Abrir no WhatsApp" className="ml-2">
-                      <MessageSquare className="h-4 w-4 text-primary hover:text-primary/80" />
-                    </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-1">
+          <CardContent className="pt-6 flex flex-col items-center text-center gap-4">
+            <Image
+              src={client.photo_url || `https://picsum.photos/seed/${client.id}/200/200`}
+              alt={client.display_name} width={120} height={120} className="rounded-full object-cover" />
+            <div>
+              <h2 className="text-xl font-semibold">{client.display_name}</h2>
+              <p className="text-sm text-muted-foreground">{client.email}</p>
+            </div>
+            <Separator />
+            <div className="w-full text-left space-y-2 text-sm">
+              <p><span className="font-medium">Telefone:</span> {client.phone || 'Não informado'}</p>
+              <p><span className="font-medium">CPF:</span> {client.cpf || 'Não informado'}</p>
+              <p><span className="font-medium">Nascimento:</span> {client.dob ? format(new Date(client.dob + 'T00:00:00'), 'dd/MM/yyyy') : 'Não informado'}</p>
+              <p><span className="font-medium">Endereço:</span> {client.address || 'Não informado'}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="tratamentos">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="tratamentos"><Stethoscope className="h-4 w-4 mr-1" />Tratamentos</TabsTrigger>
+              <TabsTrigger value="orcamentos"><FileText className="h-4 w-4 mr-1" />Orçamentos</TabsTrigger>
+              <TabsTrigger value="notas"><StickyNote className="h-4 w-4 mr-1" />Notas</TabsTrigger>
+              <TabsTrigger value="ia"><Info className="h-4 w-4 mr-1" />IA</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="tratamentos" className="mt-4 space-y-4">
+              <ClientTreatmentHistory clientId={client.id} />
+            </TabsContent>
+
+            <TabsContent value="orcamentos" className="mt-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Orçamentos</CardTitle>
+                  <Button size="sm" asChild>
+                    <Link href={`/quotes?clientId=${client.id}&clientName=${encodeURIComponent(client.display_name)}`}>
+                      <PlusCircle className="mr-2 h-4 w-4" />Novo Orçamento
+                    </Link>
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {quotes.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">Nenhum orçamento encontrado.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {quotes.map(q => (
+                          <TableRow key={q.id}>
+                            <TableCell>{formatDate(q.date)}</TableCell>
+                            <TableCell><Badge variant="outline">{q.status}</Badge></TableCell>
+                            <TableCell>R$ {q.total_amount.toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <UserSquare className="h-4 w-4 text-muted-foreground" />
-                  <strong>CPF:</strong> {client.cpf || 'Não informado'}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Gift className="h-4 w-4 text-muted-foreground" />
-                  <strong>Nascimento:</strong> {client.dob ? formatDate(client.dob, 'dd MMMM yyyy') : 'Não informado'}
-                </div>
-                <div className="flex items-center gap-2 col-span-full">
-                  <Home className="h-4 w-4 text-muted-foreground" />
-                  <strong>Endereço:</strong> {client.address || 'Não informado'}
-                </div>
-              </div>
-              {client.notes && (
-                <>
-                  <Separator />
-                  <div className="space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2"><StickyNote className="w-4 h-4" /> Observações</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{client.notes}</p>
-                  </div>
-                </>
-              )}
-              {client.medicalHistory && client.medicalHistory.length > 0 && (
-                <>
-                  <Separator />
-                  <div className="space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2"><Stethoscope className="w-4 h-4" /> Histórico Médico</h4>
-                    <ul className="list-disc list-inside text-sm text-muted-foreground">
-                      {client.medicalHistory.map((item, i) => <li key={i}>{item}</li>)}
-                    </ul>
-                  </div>
-                </>
-              )}
-              {client.consentForms && client.consentForms.length > 0 && (
-                <>
-                  <Separator />
-                  <div className="space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2"><FileText className="w-4 h-4" /> Termos de Consentimento</h4>
-                    <ul className="list-disc list-inside text-sm text-muted-foreground">
-                      {client.consentForms.map((form, i) => (
-                        <li key={i}>{form.name} - <Badge variant={form.status === 'Assinado' ? 'default' : 'secondary'}>{form.status}</Badge> ({form.date})</li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="history" className="mt-4">
-            <ClientTreatmentHistory client={client} />
-        </TabsContent>
-        <TabsContent value="plan" className="mt-4">
-          <TreatmentPlanList client={client} plans={clientTreatmentPlans || []} />
-        </TabsContent>
-        <TabsContent value="quotes" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-primary">Orçamentos do Cliente</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ClientQuotesList />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="photos" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-primary">Fotos de Antes e Depois</CardTitle>
-              <CardDescription>Registro visual do progresso do tratamento.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {beforeAfterImages.map(img => (
-                  <div key={img.id}>
-                    <Image src={img.imageUrl} alt={img.description} width={600} height={400} className="rounded-lg object-cover" data-ai-hint={img.imageHint} />
-                    <p className="text-center text-sm mt-2 text-muted-foreground capitalize">{img.description}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="notas" className="mt-4">
+              <Card>
+                <CardHeader><CardTitle>Observações</CardTitle></CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {client.notes || 'Nenhuma observação registrada.'}
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="ia" className="mt-4">
+              <TreatmentPlanRecommender client={client as any} />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </>
   );
 }

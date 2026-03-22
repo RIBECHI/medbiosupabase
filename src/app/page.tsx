@@ -3,9 +3,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, Timestamp } from 'firebase/firestore';
-import { clientConverter, type Client, type Kpi } from '@/lib/types';
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 import { kpis as staticKpis } from '@/lib/placeholder-data';
@@ -17,14 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
-  const firestore = useFirestore();
 
   const clientsQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'clients')).withConverter(clientConverter);
   }, [firestore?.app.name]);
 
-  const { data: clients, loading: loadingClients } = useCollection<Client>(clientsQuery);
 
   const dynamicKpis = useMemo(() => {
     if (loadingClients || !clients) {

@@ -24,23 +24,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
-import { Timestamp, collection, query, orderBy, type Query } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Quote, Service } from '@/lib/types';
-import { quoteConverter } from '@/lib/types';
 import { AddQuoteForm } from '@/components/quotes/AddQuoteForm';
-import { useCollection, useFirestore } from '@/firebase';
 
 export default function QuotesPage() {
     const [isAddQuoteSheetOpen, setAddQuoteSheetOpen] = useState(false);
-    const firestore = useFirestore();
 
     const quotesQuery = useMemo<Query<Quote> | null>(() => {
       if (!firestore) return null;
-      return query(collection(firestore, 'quotes'), orderBy('date', 'desc')).withConverter(quoteConverter);
     }, [firestore]);
 
-    const { data: quotes, loading } = useCollection<Quote>(quotesQuery, {snapshot: false});
 
     const formatDate = (date: any) => {
         if (!date) return 'N/A';

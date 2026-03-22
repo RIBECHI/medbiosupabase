@@ -14,8 +14,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, WithFieldValue, doc, deleteDoc, writeBatch, Timestamp, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, MessageSquareText, Phone, Trash2, Loader2 } from 'lucide-react';
@@ -29,13 +27,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import type { Lead, WhatsAppMessage, Client } from '@/lib/types';
-import { whatsAppMessageConverter } from '@/lib/types';
 import Link from 'next/link';
 
 
@@ -59,7 +53,6 @@ const normalizePhoneNumber = (phone: string | undefined) => {
 function WhatsAppPageComponent() {
     const searchParams = useSearchParams();
     const phoneFromUrl = searchParams.get('phone');
-    const firestore = useFirestore();
     
     const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<string | null>(phoneFromUrl);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
@@ -73,10 +66,8 @@ function WhatsAppPageComponent() {
             collection(firestore, 'whatsappMessages'), 
             orderBy('sentDate', 'desc'), 
             limit(200)
-        ).withConverter(whatsAppMessageConverter);
     }, [firestore]);
 
-    const { data: allMessages, loading: loadingMessages } = useCollection<WhatsAppMessage>(messagesQuery, {snapshot: true});
     
     const conversations = useMemo((): Conversation[] => {
         if (!allMessages) return [];
@@ -189,12 +180,10 @@ function WhatsAppPageComponent() {
 
         })
         .catch(serverError => {
-            const permissionError = new FirestorePermissionError({
                 path: 'clients or leads',
                 operation: 'create',
                 requestResourceData: { client: newClientData },
             });
-            errorEmitter.emit('permission-error', permissionError);
         })
         .finally(() => {
             setIsProcessing(false);

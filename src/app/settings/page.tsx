@@ -18,15 +18,10 @@ import { ArrowRight, Loader2, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, setDoc, writeBatch, collection, query, orderBy, limit } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
-import { settingsConverter, type GeneralSettings, n8nLogConverter, type N8nLog } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     AlertDialog,
@@ -47,16 +42,13 @@ const settingsSchema = z.object({
 });
 
 function GeneralSettingsForm() {
-    const firestore = useFirestore();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const settingsRef = useMemo(() => {
         if (!firestore) return null;
-        return doc(firestore, 'settings', 'general').withConverter(settingsConverter);
     }, [firestore]);
 
-    const { data: settings, loading } = useDoc<GeneralSettings>(settingsRef);
 
     const form = useForm<z.infer<typeof settingsSchema>>({
         resolver: zodResolver(settingsSchema),
@@ -83,12 +75,10 @@ function GeneralSettingsForm() {
                 toast({ title: 'Sucesso', description: 'Configurações salvas.' });
             })
             .catch((err) => {
-                const permissionError = new FirestorePermissionError({
                     path: settingsRef.path,
                     operation: 'update',
                     requestResourceData: values,
                 });
-                errorEmitter.emit('permission-error', permissionError);
             })
             .finally(() => {
                 setIsSubmitting(false);
@@ -147,7 +137,6 @@ function GeneralSettingsForm() {
 }
 
 function N8nLogManager() {
-    const firestore = useFirestore();
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isAlertOpen, setAlertOpen] = useState(false);
@@ -155,10 +144,8 @@ function N8nLogManager() {
     const logsQuery = useMemo(() => {
         if (!firestore) return null;
         // Limitamos a 500 para não estourar o limite de batch do Firestore
-        return query(collection(firestore, 'n8n_logs'), orderBy('receivedAt', 'desc'), limit(500)).withConverter(n8nLogConverter);
     }, [firestore?.app.name]);
 
-    const { data: logs } = useCollection<N8nLog>(logsQuery);
     
     const handleClearLogs = async () => {
         if (!firestore || !logs || logs.length === 0) return;

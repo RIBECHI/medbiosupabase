@@ -2,12 +2,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Appointment } from '@/lib/types';
-import { appointmentConverter } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Info } from 'lucide-react';
@@ -18,7 +14,6 @@ type AppointmentListProps = {
 };
 
 export function AppointmentList({ selectedDate }: AppointmentListProps) {
-  const firestore = useFirestore();
 
   const appointmentsQuery = useMemo(() => {
     if (!firestore || !selectedDate) return null;
@@ -29,10 +24,8 @@ export function AppointmentList({ selectedDate }: AppointmentListProps) {
       where('date', '==', formattedDate),
       orderBy('startTime'),
       limit(50)
-    ).withConverter(appointmentConverter);
   }, [firestore, selectedDate]);
 
-  const { data: appointments, loading } = useCollection<Appointment>(appointmentsQuery, {
     snapshot: false
   });
 

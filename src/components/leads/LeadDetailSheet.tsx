@@ -3,8 +3,6 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import type { Lead, LeadHistory, LeadInteractionType } from '@/lib/types';
-import { leadHistoryConverter } from '@/lib/types';
 import {
   Sheet,
   SheetContent,
@@ -34,8 +32,6 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useCollection, useFirestore } from '@/firebase';
-import { addDoc, collection, query, orderBy, serverTimestamp, Timestamp, WithFieldValue, doc, updateDoc, where, limit } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -54,8 +50,6 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { Skeleton } from '../ui/skeleton';
 import { LeadConversationModal } from './LeadConversationModal';
 
@@ -84,7 +78,6 @@ const interactionIcons: Record<LeadInteractionType, React.ElementType> = {
 }
 
 function LeadHistoryComponent({ lead }: { lead: Lead }) {
-    const firestore = useFirestore();
     const { toast } = useToast();
     const form = useForm<HistoryFormData>({
         resolver: zodResolver(historyFormSchema),
@@ -102,10 +95,8 @@ function LeadHistoryComponent({ lead }: { lead: Lead }) {
             collection(firestore, 'leads', lead.id, 'history'),
             orderBy('date', 'desc'),
             limit(50)
-        ).withConverter(leadHistoryConverter);
     }, [firestore, lead?.id]);
 
-    const { data: history, loading, setData: setHistory } = useCollection<LeadHistory>(historyQuery, { snapshot: false });
 
     const onAddHistory = async (values: HistoryFormData) => {
         if (!firestore || !lead?.id) return;
@@ -139,12 +130,10 @@ function LeadHistoryComponent({ lead }: { lead: Lead }) {
             form.reset();
         })
         .catch(err => {
-            const permissionError = new FirestorePermissionError({
                 path: historyCollection.path,
                 operation: 'create',
                 requestResourceData: newHistoryData
             });
-            errorEmitter.emit('permission-error', permissionError);
         });
     }
 
@@ -307,7 +296,6 @@ export function LeadDetailSheet({
   onOpenChange,
   onUpdateLead,
 }: LeadDetailSheetProps) {
-    const firestore = useFirestore();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
     const [isConversationModalOpen, setConversationModalOpen] = useState(false);
@@ -354,12 +342,10 @@ export function LeadDetailSheet({
                 form.reset(data); // Resets the form with the new values, clearing the dirty state
             })
             .catch((err) => {
-                const permissionError = new FirestorePermissionError({
                     path: leadRef.path,
                     operation: 'update',
                     requestResourceData: updateData
                 });
-                errorEmitter.emit('permission-error', permissionError);
             })
             .finally(() => {
                 setIsSaving(false);

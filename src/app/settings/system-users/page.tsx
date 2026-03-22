@@ -34,11 +34,8 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useCollection, useFirestore } from '@/firebase';
-import { doc, deleteDoc, query, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { userConverter, type User } from '@/lib/types';
 
 // This is a placeholder for a server-side function.
 // In a real app, you would have a Cloud Function to handle user deletion securely.
@@ -51,16 +48,13 @@ async function deleteUserOnServer(userId: string) {
 }
 
 export default function SystemUsersPage() {
-    const firestore = useFirestore();
     const { toast } = useToast();
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
     const usersQuery = useMemo(() => {
         if (!firestore) return null;
-        return query(collection(firestore, 'users')).withConverter(userConverter);
     }, [firestore]);
 
-    const { data: users, loading } = useCollection<User>(usersQuery, {snapshot: false});
 
     const handleDeleteUser = async () => {
         if (!userToDelete || !firestore) return;

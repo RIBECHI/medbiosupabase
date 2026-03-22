@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import type { TreatmentPlan } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,7 +16,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Timestamp } from 'firebase/firestore';
 
 
 export function TreatmentPlanRecommender({ plan }: { plan: TreatmentPlan }) {

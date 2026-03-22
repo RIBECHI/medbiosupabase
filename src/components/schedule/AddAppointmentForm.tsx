@@ -31,14 +31,9 @@ import {
     SelectTrigger,
     SelectValue,
   } from '@/components/ui/select';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, addDoc, WithFieldValue, query } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, UserPlus } from 'lucide-react';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { type Client, type Service, appointmentConverter, type Appointment, clientConverter, serviceConverter } from '@/lib/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Link from 'next/link';
@@ -67,14 +62,9 @@ export function AddAppointmentForm({
     selectedDate
 }: AddAppointmentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const firestore = useFirestore();
   const { toast } = useToast();
 
-  const clientsQuery = useMemo(() => firestore ? query(collection(firestore, 'clients')).withConverter(clientConverter) : null, [firestore]);
-  const servicesQuery = useMemo(() => firestore ? query(collection(firestore, 'services')).withConverter(serviceConverter) : null, [firestore]);
 
-  const { data: clients, loading: loadingClients } = useCollection<Client>(clientsQuery, {snapshot: false});
-  const { data: services, loading: loadingServices } = useCollection<Service>(servicesQuery, {snapshot: false});
   const loadingData = loadingClients || loadingServices;
 
   const form = useForm<z.infer<typeof appointmentFormSchema>>({
@@ -120,7 +110,6 @@ export function AddAppointmentForm({
         date: format(selectedDate, 'yyyy-MM-dd'),
     };
 
-    const appointmentsCollection = collection(firestore, 'appointments').withConverter(appointmentConverter);
 
     addDoc(appointmentsCollection, newAppointmentData)
       .then(() => {
@@ -131,12 +120,10 @@ export function AddAppointmentForm({
         onOpenChange(false);
       })
       .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
           path: appointmentsCollection.path,
           operation: 'create',
           requestResourceData: newAppointmentData,
         });
-        errorEmitter.emit('permission-error', permissionError);
       })
       .finally(() => {
         setIsSubmitting(false);

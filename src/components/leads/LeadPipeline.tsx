@@ -4,11 +4,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ReadonlyURLSearchParams } from 'next/navigation';
-import { useCollection, useFirestore } from '@/firebase';
-import { doc, updateDoc, Timestamp, addDoc, serverTimestamp, deleteDoc, collection, query, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { leadConverter, leadStageConverter, userConverter } from '@/lib/types';
-import type { Lead, LeadStatus, LeadStage, User } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -67,8 +63,6 @@ import { Skeleton } from '../ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { AddLeadForm } from './AddLeadForm';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
 
@@ -180,7 +174,6 @@ function PipelineColumn({ stage, leads, onCardClick, onDelete, onUpdateStage, hi
     const { setNodeRef } = useSortable({ id: stage.name, data: { isContainer: true } });
     const [description, setDescription] = useState(stage.description || '');
     const [isSaving, setIsSaving] = useState(false);
-    const firestore = useFirestore();
     const { toast } = useToast();
 
     useEffect(() => {
@@ -261,7 +254,6 @@ function PipelineColumn({ stage, leads, onCardClick, onDelete, onUpdateStage, hi
   }
 
 export function LeadPipeline({ searchParams }: { searchParams: ReadonlyURLSearchParams }) {
-  const firestore = useFirestore();
   const { toast } = useToast();
   
   const [allLeads, setAllLeads] = useState<Lead[]>([]);
@@ -279,13 +271,7 @@ export function LeadPipeline({ searchParams }: { searchParams: ReadonlyURLSearch
   const [searchTerm, setSearchTerm] = useState('');
   const pipelineContainerRef = useRef<HTMLDivElement>(null);
   
-  const leadsQuery = useMemo(() => firestore ? query(collection(firestore, 'leads'), orderBy('createdAt', 'desc')).withConverter(leadConverter) : null, [firestore]);
-  const leadStagesQuery = useMemo(() => firestore ? query(collection(firestore, 'leadStages'), orderBy('order')).withConverter(leadStageConverter) : null, [firestore]);
-  const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'users')).withConverter(userConverter) : null, [firestore]);
 
-  const { data: fetchedLeads, loading: loadingLeads } = useCollection<Lead>(leadsQuery, {snapshot: true});
-  const { data: fetchedLeadStages, loading: loadingLeadStages } = useCollection<LeadStage>(leadStagesQuery, {snapshot: false});
-  const { data: fetchedUsers, loading: loadingUsers } = useCollection<User>(usersQuery, {snapshot: false});
   
   const loadingData = loadingLeads || loadingLeadStages || loadingUsers;
 
@@ -415,8 +401,6 @@ export function LeadPipeline({ searchParams }: { searchParams: ReadonlyURLSearch
         });
     } catch (serverError) {
         setAllLeads(originalLeads);
-        const permissionError = new FirestorePermissionError({ path: leadRef.path, operation: 'delete' });
-        errorEmitter.emit('permission-error', permissionError);
         toast({
             title: 'Erro',
             description: 'Falha ao excluir o lead. O item foi restaurado.',

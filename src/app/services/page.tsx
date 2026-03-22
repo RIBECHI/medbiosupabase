@@ -22,27 +22,19 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { useCollection, useFirestore } from '@/firebase';
-import { doc, deleteDoc, query, collection, orderBy, type Query } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { AddServiceForm } from '@/components/services/AddServiceForm';
-import { serviceConverter, type Service } from '@/lib/types';
 
 export default function ServicesPage() {
-  const firestore = useFirestore();
   const { toast } = useToast();
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
 
   const servicesQuery = useMemo<Query<Service> | null>(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'services'), orderBy('name')).withConverter(serviceConverter);
   }, [firestore]);
 
-  const { data: services, loading } = useCollection<Service>(servicesQuery, {snapshot: false});
 
   const handleEdit = (service: Service) => {
     setServiceToEdit(service);
@@ -65,11 +57,9 @@ export default function ServicesPage() {
         });
       })
       .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
           path: serviceRef.path,
           operation: 'delete',
         });
-        errorEmitter.emit('permission-error', permissionError);
       });
   };
 

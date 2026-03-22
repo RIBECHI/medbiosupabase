@@ -25,14 +25,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useFirestore } from '@/firebase';
-import { collection, addDoc, updateDoc, doc, WithFieldValue } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import type { Service } from '@/lib/types';
-import { serviceConverter } from '@/lib/types';
 import { ScrollArea } from '../ui/scroll-area';
 
 const serviceFormSchema = z.object({
@@ -51,7 +45,6 @@ type AddServiceFormProps = {
 
 export function AddServiceForm({ isOpen, onOpenChange, serviceToEdit }: AddServiceFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const firestore = useFirestore();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof serviceFormSchema>>({
@@ -81,7 +74,6 @@ export function AddServiceForm({ isOpen, onOpenChange, serviceToEdit }: AddServi
     if (isEditing) {
       // Update existing service
       if (!serviceToEdit?.id) return;
-      const serviceRef = doc(firestore, 'services', serviceToEdit.id).withConverter(serviceConverter);
       updateDoc(serviceRef, {
           ...values,
           description: values.description ?? '',
@@ -94,12 +86,10 @@ export function AddServiceForm({ isOpen, onOpenChange, serviceToEdit }: AddServi
           onOpenChange(false);
         })
         .catch((serverError) => {
-          const permissionError = new FirestorePermissionError({
             path: serviceRef.path,
             operation: 'update',
             requestResourceData: values,
           });
-          errorEmitter.emit('permission-error', permissionError);
         })
         .finally(() => {
           setIsSubmitting(false);
@@ -110,7 +100,6 @@ export function AddServiceForm({ isOpen, onOpenChange, serviceToEdit }: AddServi
         ...values,
         description: values.description ?? '',
       };
-      const servicesCollection = collection(firestore, 'services').withConverter(serviceConverter);
       
       addDoc(servicesCollection, newServiceData)
         .then(() => {
@@ -121,12 +110,10 @@ export function AddServiceForm({ isOpen, onOpenChange, serviceToEdit }: AddServi
           onOpenChange(false);
         })
         .catch((serverError) => {
-          const permissionError = new FirestorePermissionError({
             path: servicesCollection.path,
             operation: 'create',
             requestResourceData: newServiceData,
           });
-          errorEmitter.emit('permission-error', permissionError);
         })
         .finally(() => {
           setIsSubmitting(false);

@@ -2,8 +2,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Client, Treatment } from '@/lib/types';
-import { useCollection, useFirestore } from '@/firebase';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -26,22 +24,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Info, PlusCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { AddTreatmentForm } from './AddTreatmentForm';
-import { collection, query, orderBy } from 'firebase/firestore';
-import { treatmentConverter } from '@/lib/types';
 
 export function ClientTreatmentHistory({ client }: { client: Client }) {
   const [isSheetOpen, setSheetOpen] = useState(false);
-  const firestore = useFirestore();
 
   const treatmentsQuery = useMemo(() => {
     if (!firestore) return null;
     return query(
         collection(firestore, 'clients', client.id, 'treatments'),
         orderBy('date', 'desc')
-    ).withConverter(treatmentConverter);
   }, [firestore, client.id]);
   
-  const { data: clientTreatments, loading } = useCollection<Treatment>(treatmentsQuery, {snapshot: false});
 
   const formatDate = (date: any) => {
     if (!date) return 'N/A';

@@ -3,8 +3,6 @@
 'use client';
 
 import { useMemo, useRef, useEffect } from 'react';
-import type { WhatsAppMessage } from '@/lib/types';
-import { whatsAppMessageConverter } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -12,8 +10,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
 import { MessageSquareText, Phone } from 'lucide-react';
@@ -46,7 +42,6 @@ export function LeadConversationModal({
   leadName,
   leadPhone,
 }: LeadConversationModalProps) {
-  const firestore = useFirestore();
 
   const normalizedLeadPhone = useMemo(() => normalizePhoneNumber(leadPhone), [leadPhone]);
 
@@ -56,10 +51,8 @@ export function LeadConversationModal({
         collection(firestore, 'whatsappMessages'),
         where('clientPhone', '==', normalizedLeadPhone),
         orderBy('sentDate', 'asc')
-    ).withConverter(whatsAppMessageConverter);
   }, [firestore, normalizedLeadPhone]);
 
-  const { data: conversationMessages, loading } = useCollection<WhatsAppMessage>(messagesQuery, { snapshot: true });
   
   const displayMessages = useMemo((): DisplayMessage[] => {
     if (!conversationMessages) return [];

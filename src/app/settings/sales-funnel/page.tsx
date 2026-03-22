@@ -5,10 +5,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, query, orderBy, doc, deleteDoc, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { leadStageConverter, type LeadStage } from '@/lib/types';
 import { Loader2, PlusCircle, Trash2, GripVertical } from 'lucide-react';
 import {
   DndContext,
@@ -90,7 +87,6 @@ function SortableStageItem({ stage, onSave, onDelete }: { stage: LeadStage, onSa
 }
 
 export default function SalesFunnelPage() {
-  const firestore = useFirestore();
   const { toast } = useToast();
   const [stages, setStages] = useState<LeadStage[]>([]);
   const [newStageName, setNewStageName] = useState('');
@@ -98,10 +94,8 @@ export default function SalesFunnelPage() {
 
   const stagesQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'leadStages'), orderBy('order')).withConverter(leadStageConverter);
   }, [firestore]);
 
-  const { data: firestoreStages, loading } = useCollection<LeadStage>(stagesQuery, {snapshot: false});
 
   useEffect(() => {
     if (firestoreStages) {
